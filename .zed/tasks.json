@@ -2,17 +2,17 @@
   {
     "label": "Build Project",
     "command": "go build",
-    "args": ["-o", "dist/demo.exe"],
+    "args": ["-o", "dist/snake"],
     "hide": "on_success"
   },
   {
     "label": "Build Project (Optimized)",
     "command": "go build",
     "args": [
-      "-ldflags='-H=windowsgui -s -w'",
+      "-ldflags='-s -w'",
       "-trimpath",
       "-o",
-      "dist/demo.exe"
+      "dist/snake"
     ],
     "hide": "on_success"
   }
