@@ -1,0 +1,32 @@
+name: Build Go Project
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.25.1'
+
+    - name: Build
+      run: |
+        mkdir -p dist
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          go build -ldflags="-s -w" -trimpath -o dist/snake.exe
+        else
+          go build -ldflags="-s -w" -trimpath -o dist/snake
+        fi
