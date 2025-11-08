@@ -2,7 +2,7 @@
   {
     "label": "Build Project",
     "command": "go",
-    "args": ["build", "-o", "dist/snake.exe"],
+    "args": ["build", "-ldflags", "'-H=windowsgui'", "-o", "dist/snake.exe"],
     "hide": "on_success"
   },
   {

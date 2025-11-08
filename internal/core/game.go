@@ -5,9 +5,10 @@ import (
 	"slices"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2"
-
+	mng "baolhq/snake/internal/managers"
 	"baolhq/snake/internal/models"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 const (
@@ -67,28 +68,28 @@ func (g *Game) spawnFood() {
 	g.freeCells = append(g.freeCells[:idx], g.freeCells[idx+1:]...)
 }
 
-func (g *Game) handleInput() error {
-	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
+func (g *Game) HandleInput() error {
+	mng.Input.Update()
+
+	if mng.Input.WasPressed(mng.ActionPause) {
 		return ebiten.Termination
 	}
 
-	if g.gameOver {
-		if ebiten.IsKeyPressed(ebiten.KeyEnter) {
-			*g = *NewGame()
-		}
+	if g.gameOver && mng.Input.WasPressed(mng.ActionEnter) {
+		*g = *NewGame()
 		return nil
 	}
 
-	if ebiten.IsKeyPressed(ebiten.KeyUp) && g.dir.Y != 1 {
+	if mng.Input.WasPressed(mng.ActionUp) && g.dir.Y != 1 {
 		g.dir = models.Point{X: 0, Y: -1}
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyDown) && g.dir.Y != -1 {
+	if mng.Input.WasPressed(mng.ActionDown) && g.dir.Y != -1 {
 		g.dir = models.Point{X: 0, Y: 1}
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyLeft) && g.dir.X != 1 {
+	if mng.Input.WasPressed(mng.ActionLeft) && g.dir.X != 1 {
 		g.dir = models.Point{X: -1, Y: 0}
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyRight) && g.dir.X != -1 {
+	if mng.Input.WasPressed(mng.ActionRight) && g.dir.X != -1 {
 		g.dir = models.Point{X: 1, Y: 0}
 	}
 
@@ -96,7 +97,7 @@ func (g *Game) handleInput() error {
 }
 
 func (g *Game) Update() error {
-	if err := g.handleInput(); err != nil {
+	if err := g.HandleInput(); err != nil {
 		return err
 	}
 
