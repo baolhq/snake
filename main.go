@@ -1,7 +1,7 @@
 package main
 
 import (
-	"baolhq/snake/core"
+	"baolhq/snake/internal/core"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"

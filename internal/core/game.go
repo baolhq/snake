@@ -7,7 +7,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"baolhq/snake/models"
+	"baolhq/snake/internal/models"
 )
 
 const (
