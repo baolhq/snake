@@ -11,6 +11,9 @@ import (
 //go:embed fonts/Mx437_IBM_VGA_8x16.ttf
 var MainFont []byte
 
+//go:embed images/particle.png
+var ParticleImage []byte
+
 func LoadFont(font []byte, size float64) text.Face {
 	fnt, err := opentype.Parse(font)
 	if err != nil {

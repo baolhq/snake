@@ -3,6 +3,7 @@ package core
 import (
 	"baolhq/snake/internal/assets"
 	"baolhq/snake/internal/consts"
+	mng "baolhq/snake/internal/managers"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -38,6 +39,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		consts.FoodColor,
 		false,
 	)
+
+	mng.Particle.Draw(screen)
 
 	// game over text
 	if g.gameOver {

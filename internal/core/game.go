@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	"baolhq/snake/internal/assets"
 	"baolhq/snake/internal/consts"
 	mng "baolhq/snake/internal/managers"
 	"baolhq/snake/internal/models"
@@ -168,6 +169,8 @@ func (g *Game) Update() error {
 		return err
 	}
 
+	mng.Particle.Update(1.0 / 60)
+
 	g.timer += 16 * time.Millisecond
 	if g.timer < g.computeInterval() {
 		return nil
@@ -180,8 +183,13 @@ func (g *Game) Update() error {
 	if selfCollision {
 		g.gameOver = true
 	}
+
 	if ateFood {
 		g.spawnFood()
+
+		px := g.Snake.Segments[0].X * consts.CellSize
+		py := g.Snake.Segments[0].Y * consts.CellSize
+		mng.Particle.Explode(assets.ParticleImage, px, py, 20)
 	}
 
 	return nil
