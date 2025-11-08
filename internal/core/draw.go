@@ -3,32 +3,13 @@ package core
 import (
 	"baolhq/snake/internal/assets"
 	"image/color"
-	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
 )
 
-var gameOverFont font.Face
-var gameOverFace text.Face
-
-func init() {
-	fnt, err := opentype.Parse(assets.MainFont)
-	if err != nil {
-		log.Fatal(err)
-	}
-	gameOverFont, err = opentype.NewFace(fnt, &opentype.FaceOptions{
-		Size: 32, // adjust size
-		DPI:  72,
-	})
-	gameOverFace = text.NewGoXFace(gameOverFont)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
+var gameOverFace = assets.LoadFont(assets.MainFont, 32)
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{0x11, 0x11, 0x11, 0xff})
@@ -65,9 +46,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	)
 
 	if g.gameOver {
+		t := "GAME OVER"
 		opt := &text.DrawOptions{}
-		opt.GeoM.Translate(ScreenW/2-80, ScreenH/2-80)
-		text.Draw(screen, "GAME OVER", gameOverFace, opt)
+		w, h := text.Measure(t, gameOverFace, 0)
+		opt.GeoM.Translate(float64(ScreenW/2-w/2), float64(ScreenH/2-h/2))
+
+		text.Draw(screen, t, gameOverFace, opt)
 	}
 }
 
