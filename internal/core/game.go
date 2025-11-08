@@ -1,30 +1,29 @@
 package core
 
 import (
+	"math"
 	"math/rand"
 	"slices"
 	"time"
 
+	"baolhq/snake/internal/consts"
 	mng "baolhq/snake/internal/managers"
 	"baolhq/snake/internal/models"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-const (
-	ScreenW = 480
-	ScreenH = 480
-	cell    = 20
-)
-
 type Game struct {
-	snake         []models.Point
-	pendingGrowth []models.Point
-	freeCells     []models.Point
-	dir           models.Point
-	food          models.Point
-	timer         time.Duration
-	gameOver      bool
+	Snake      *models.Snake
+	dir        models.Point
+	pendingDir []models.Point
+	food       models.Point
+	freeCells  []models.Point
+	timer      time.Duration
+	accel      bool
+	accelTimer time.Duration
+	accelDelay time.Duration
+	gameOver   bool
 }
 
 func removePoints(list []models.Point, points []models.Point) []models.Point {
@@ -38,8 +37,7 @@ func removePoints(list []models.Point, points []models.Point) []models.Point {
 }
 
 func NewGame() *Game {
-	totalX := ScreenW / cell
-	totalY := ScreenH / cell
+	totalX, totalY := consts.ScreenWidth/consts.CellSize, consts.ScreenHeight/consts.CellSize
 
 	free := make([]models.Point, 0, totalX*totalY)
 	for y := range totalY {
@@ -48,22 +46,72 @@ func NewGame() *Game {
 		}
 	}
 
-	s := models.NewSnake(ScreenW, cell)
-	free = removePoints(free, s)
+	initial := []models.Point{
+		{X: totalX/2 + 1, Y: totalY / 2},
+		{X: totalX / 2, Y: totalY / 2},
+		{X: totalX/2 - 1, Y: totalY / 2},
+	}
+	s := models.NewSnake(initial, consts.CellSize)
+	free = removePoints(free, s.Segments)
 
 	g := &Game{
-		snake:     s,
-		dir:       models.Point{X: 1, Y: 0},
-		freeCells: free,
+		Snake:      s,
+		dir:        models.Point{X: 1, Y: 0},
+		freeCells:  free,
+		accelDelay: 200 * time.Millisecond,
+		pendingDir: make([]models.Point, 0, 2),
 	}
 	g.spawnFood()
 	return g
 }
 
 func (g *Game) spawnFood() {
+	if len(g.freeCells) == 0 {
+		return
+	}
 	idx := rand.Intn(len(g.freeCells))
 	g.food = g.freeCells[idx]
 	g.freeCells = append(g.freeCells[:idx], g.freeCells[idx+1:]...)
+}
+
+func (g *Game) queueDirection(action mng.Action, dx, dy int) {
+	if !mng.Input.WasPressed(action) {
+		return
+	}
+
+	last := g.dir
+	if len(g.pendingDir) > 0 {
+		last = g.pendingDir[len(g.pendingDir)-1]
+	}
+
+	if last.X == -dx && last.Y == -dy {
+		return // cannot reverse
+	}
+
+	if len(g.pendingDir) < 2 {
+		g.pendingDir = append(g.pendingDir, models.Point{X: dx, Y: dy})
+	}
+}
+
+func (g *Game) updateAccelState() {
+	g.accel = false
+
+	check := func(dx, dy int, action mng.Action) bool {
+		if mng.Input.IsDown(action) {
+			if g.dir.X == dx && g.dir.Y == dy {
+				return true
+			}
+			if len(g.pendingDir) > 0 && g.pendingDir[0].X == dx && g.pendingDir[0].Y == dy {
+				return true
+			}
+		}
+		return false
+	}
+
+	g.accel = check(1, 0, mng.ActionRight) ||
+		check(-1, 0, mng.ActionLeft) ||
+		check(0, 1, mng.ActionDown) ||
+		check(0, -1, mng.ActionUp)
 }
 
 func (g *Game) HandleInput() error {
@@ -72,23 +120,47 @@ func (g *Game) HandleInput() error {
 	if mng.Input.WasPressed(mng.ActionPause) {
 		return ebiten.Termination
 	}
+
 	if g.gameOver && mng.Input.WasPressed(mng.ActionEnter) {
 		*g = *NewGame()
 		return nil
 	}
 
-	switch {
-	case mng.Input.WasPressed(mng.ActionUp) && g.dir.Y != 1:
-		g.dir = models.Point{X: 0, Y: -1}
-	case mng.Input.WasPressed(mng.ActionDown) && g.dir.Y != -1:
-		g.dir = models.Point{X: 0, Y: 1}
-	case mng.Input.WasPressed(mng.ActionLeft) && g.dir.X != 1:
-		g.dir = models.Point{X: -1, Y: 0}
-	case mng.Input.WasPressed(mng.ActionRight) && g.dir.X != -1:
-		g.dir = models.Point{X: 1, Y: 0}
+	g.queueDirection(mng.ActionUp, 0, -1)
+	g.queueDirection(mng.ActionDown, 0, 1)
+	g.queueDirection(mng.ActionLeft, -1, 0)
+	g.queueDirection(mng.ActionRight, 1, 0)
+
+	g.updateAccelState()
+	return nil
+}
+
+func (g *Game) computeInterval() time.Duration {
+	base, min := 200.0, 50.0
+	k := 0.0366
+	score := float64(len(g.Snake.Segments))
+	interval := min + (base-min)*math.Exp(-k*score)
+	if interval < min {
+		interval = min
 	}
 
-	return nil
+	if g.accel {
+		g.accelTimer += 16 * time.Millisecond
+		if g.accelTimer >= g.accelDelay {
+			interval = 50
+		}
+	} else {
+		g.accelTimer = 0
+	}
+
+	return time.Duration(interval) * time.Millisecond
+}
+
+func (g *Game) applyPendingDirection() {
+	if len(g.pendingDir) > 0 {
+		g.dir = g.pendingDir[0]
+		g.pendingDir = g.pendingDir[1:]
+	}
 }
 
 func (g *Game) Update() error {
@@ -96,45 +168,20 @@ func (g *Game) Update() error {
 		return err
 	}
 
-	g.timer += time.Millisecond * 16
-	if g.timer < 120*time.Millisecond {
+	g.timer += 16 * time.Millisecond
+	if g.timer < g.computeInterval() {
 		return nil
 	}
 	g.timer = 0
 
-	head := g.snake[0]
-	newHead := models.Point{X: head.X + g.dir.X, Y: head.Y + g.dir.Y}
+	g.applyPendingDirection()
 
-	if newHead.X < 0 || newHead.X >= ScreenW/cell || newHead.Y < 0 || newHead.Y >= ScreenH/cell {
+	selfCollision, ateFood := g.Snake.Move(g.dir, &g.freeCells, g.food)
+	if selfCollision {
 		g.gameOver = true
-		return nil
 	}
-
-	willGrow := newHead == g.food
-
-	if slices.Contains(g.snake, newHead) {
-		tail := g.snake[len(g.snake)-1]
-		tailWillBeRemoved := !willGrow && !(len(g.pendingGrowth) > 0 && tail == g.pendingGrowth[0])
-		if !(newHead == tail && tailWillBeRemoved) {
-			g.gameOver = true
-			return nil
-		}
-	}
-
-	g.freeCells = removePoints(g.freeCells, []models.Point{newHead})
-	g.snake = append([]models.Point{newHead}, g.snake...)
-
-	if willGrow {
-		g.pendingGrowth = append(g.pendingGrowth, g.food)
+	if ateFood {
 		g.spawnFood()
-	}
-
-	tail := g.snake[len(g.snake)-1]
-	if len(g.pendingGrowth) > 0 && tail == g.pendingGrowth[0] {
-		g.pendingGrowth = g.pendingGrowth[1:]
-	} else {
-		g.snake = g.snake[:len(g.snake)-1]
-		g.freeCells = append(g.freeCells, tail)
 	}
 
 	return nil
