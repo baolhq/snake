@@ -63,8 +63,6 @@ func NewGame() *Game {
 func (g *Game) spawnFood() {
 	idx := rand.Intn(len(g.freeCells))
 	g.food = g.freeCells[idx]
-
-	// remove chosen food cell from free
 	g.freeCells = append(g.freeCells[:idx], g.freeCells[idx+1:]...)
 }
 
@@ -74,22 +72,19 @@ func (g *Game) HandleInput() error {
 	if mng.Input.WasPressed(mng.ActionPause) {
 		return ebiten.Termination
 	}
-
 	if g.gameOver && mng.Input.WasPressed(mng.ActionEnter) {
 		*g = *NewGame()
 		return nil
 	}
 
-	if mng.Input.WasPressed(mng.ActionUp) && g.dir.Y != 1 {
+	switch {
+	case mng.Input.WasPressed(mng.ActionUp) && g.dir.Y != 1:
 		g.dir = models.Point{X: 0, Y: -1}
-	}
-	if mng.Input.WasPressed(mng.ActionDown) && g.dir.Y != -1 {
+	case mng.Input.WasPressed(mng.ActionDown) && g.dir.Y != -1:
 		g.dir = models.Point{X: 0, Y: 1}
-	}
-	if mng.Input.WasPressed(mng.ActionLeft) && g.dir.X != 1 {
+	case mng.Input.WasPressed(mng.ActionLeft) && g.dir.X != 1:
 		g.dir = models.Point{X: -1, Y: 0}
-	}
-	if mng.Input.WasPressed(mng.ActionRight) && g.dir.X != -1 {
+	case mng.Input.WasPressed(mng.ActionRight) && g.dir.X != -1:
 		g.dir = models.Point{X: 1, Y: 0}
 	}
 
@@ -101,32 +96,24 @@ func (g *Game) Update() error {
 		return err
 	}
 
-	// update timer
 	g.timer += time.Millisecond * 16
 	if g.timer < 120*time.Millisecond {
 		return nil
 	}
 	g.timer = 0
 
-	// movement
 	head := g.snake[0]
 	newHead := models.Point{X: head.X + g.dir.X, Y: head.Y + g.dir.Y}
 
-	// kill on out-of-bounds
 	if newHead.X < 0 || newHead.X >= ScreenW/cell || newHead.Y < 0 || newHead.Y >= ScreenH/cell {
 		g.gameOver = true
 		return nil
 	}
 
-	// will we grow this tick? (eating the food)
 	willGrow := newHead == g.food
 
-	// collision check:
-	// allow moving into the current tail when the tail will move away (i.e. when not growing
-	// and pendingGrowth does not block tail movement).
 	if slices.Contains(g.snake, newHead) {
 		tail := g.snake[len(g.snake)-1]
-		// if newHead == tail and tail will be removed this tick, it's allowed
 		tailWillBeRemoved := !willGrow && !(len(g.pendingGrowth) > 0 && tail == g.pendingGrowth[0])
 		if !(newHead == tail && tailWillBeRemoved) {
 			g.gameOver = true
@@ -135,24 +122,17 @@ func (g *Game) Update() error {
 	}
 
 	g.freeCells = removePoints(g.freeCells, []models.Point{newHead})
-
-	// prepend new head
 	g.snake = append([]models.Point{newHead}, g.snake...)
 
-	// eating: queue a pending growth spot and spawn new food
 	if willGrow {
 		g.pendingGrowth = append(g.pendingGrowth, g.food)
 		g.spawnFood()
 	}
 
-	// decide whether to remove tail this tick:
-	// if tail equals the first pendingGrowth spot, then consume the pendingGrowth and DON'T pop tail (grow)
 	tail := g.snake[len(g.snake)-1]
 	if len(g.pendingGrowth) > 0 && tail == g.pendingGrowth[0] {
-		// consume pending growth: do not remove tail, just advance the queue
 		g.pendingGrowth = g.pendingGrowth[1:]
 	} else {
-		// normal move: drop the tail
 		g.snake = g.snake[:len(g.snake)-1]
 		g.freeCells = append(g.freeCells, tail)
 	}
