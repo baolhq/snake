@@ -24,7 +24,6 @@ type Game struct {
 	accel      bool
 	accelTimer time.Duration
 	accelDelay time.Duration
-	gameOver   bool
 }
 
 func removePoints(list []models.Point, points []models.Point) []models.Point {
@@ -64,6 +63,8 @@ func NewGame() *Game {
 		pendingDir: make([]models.Point, 0, 2),
 	}
 	g.spawnFood()
+	mng.State.Set(mng.GameRunning)
+
 	return g
 }
 
@@ -120,20 +121,29 @@ func (g *Game) HandleInput() error {
 	mng.Input.Update()
 
 	if mng.Input.WasPressed(mng.ActionPause) {
-		return ebiten.Termination
+		if mng.State.Is(mng.GameRunning) {
+			mng.State.Set(mng.GamePaused)
+		} else {
+			return ebiten.Termination
+		}
 	}
 
-	if g.gameOver && mng.Input.WasPressed(mng.ActionEnter) {
+	if mng.State.Is(mng.GamePaused) && mng.Input.WasPressed(mng.ActionEnter) {
+		mng.State.Set(mng.GameRunning)
+	}
+
+	if mng.State.Is(mng.GameOver) && mng.Input.WasPressed(mng.ActionEnter) {
 		*g = *NewGame()
 		return nil
 	}
 
-	g.queueDirection(mng.ActionUp, 0, -1)
-	g.queueDirection(mng.ActionDown, 0, 1)
-	g.queueDirection(mng.ActionLeft, -1, 0)
-	g.queueDirection(mng.ActionRight, 1, 0)
-
-	g.updateAccelState()
+	if !mng.State.Is(mng.GameOver) {
+		g.queueDirection(mng.ActionUp, 0, -1)
+		g.queueDirection(mng.ActionDown, 0, 1)
+		g.queueDirection(mng.ActionLeft, -1, 0)
+		g.queueDirection(mng.ActionRight, 1, 0)
+		g.updateAccelState()
+	}
 	return nil
 }
 
@@ -170,6 +180,10 @@ func (g *Game) Update() error {
 		return err
 	}
 
+	if mng.State.Is(mng.GamePaused) {
+		return nil
+	}
+
 	mng.Particle.Update(1.0 / 60)
 
 	g.timer += 16 * time.Millisecond
@@ -182,7 +196,7 @@ func (g *Game) Update() error {
 
 	selfCollision, ateFood := g.snake.Move(g.dir, &g.freeCells, g.food)
 	if selfCollision {
-		g.gameOver = true
+		mng.State.Set(mng.GameOver)
 	}
 
 	if ateFood {

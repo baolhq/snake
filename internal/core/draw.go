@@ -10,7 +10,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-var mainFont = assets.LoadFont(assets.MainFont, 32)
+var mainFont = assets.LoadFont(assets.MainFont, 48)
+var subFont = assets.LoadFont(assets.MainFont, 18)
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(consts.BackgroundColor)
@@ -42,13 +43,38 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	mng.Particle.Draw(screen)
 
-	if g.gameOver {
-		t := "GAME OVER"
-		opt := &text.DrawOptions{}
-		w, h := text.Measure(t, mainFont, 0)
-		opt.GeoM.Translate(float64(consts.ScreenWidth/2-w/2), float64(consts.ScreenHeight/2-h/2))
-		text.Draw(screen, t, mainFont, opt)
+	if mng.State.Is(mng.GamePaused) {
+		drawTextBackground(screen)
+		drawCenteredText(screen, mainFont, "PAUSED", -12)
+		drawCenteredText(screen, subFont, "PRESS <ENTER> TO CONTINUE", 24)
 	}
+
+	if mng.State.Is(mng.GameOver) {
+		drawTextBackground(screen)
+		drawCenteredText(screen, mainFont, "GAME OVER", -24)
+		drawCenteredText(screen, subFont, "PRESS <ENTER> TO RESTART", 24)
+	}
+}
+
+func drawTextBackground(screen *ebiten.Image) {
+	w, h := float32(consts.ScreenWidth), float32(100)
+
+	vector.FillRect(
+		screen,
+		0,
+		consts.ScreenHeight/2-h/2,
+		w, h,
+		consts.PanelColor,
+		false,
+	)
+}
+
+func drawCenteredText(screen *ebiten.Image, font text.Face, content string, yOffset float64) {
+	t := content
+	opt := &text.DrawOptions{}
+	w, h := text.Measure(t, font, 0)
+	opt.GeoM.Translate(float64(consts.ScreenWidth/2-w/2), float64(consts.ScreenHeight/2-h/2)+yOffset)
+	text.Draw(screen, t, font, opt)
 }
 
 func (g *Game) Layout(outW, outH int) (int, int) {
