@@ -10,7 +10,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-var gameOverFace = assets.LoadFont(assets.MainFont, 32)
+var mainFont = assets.LoadFont(assets.MainFont, 32)
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(consts.BackgroundColor)
@@ -28,7 +28,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 
-	g.Snake.Draw(screen)
+	g.snake.Draw(screen)
 
 	// draw food
 	vector.FillRect(
@@ -42,13 +42,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	mng.Particle.Draw(screen)
 
-	// game over text
 	if g.gameOver {
 		t := "GAME OVER"
 		opt := &text.DrawOptions{}
-		w, h := text.Measure(t, gameOverFace, 0)
+		w, h := text.Measure(t, mainFont, 0)
 		opt.GeoM.Translate(float64(consts.ScreenWidth/2-w/2), float64(consts.ScreenHeight/2-h/2))
-		text.Draw(screen, t, gameOverFace, opt)
+		text.Draw(screen, t, mainFont, opt)
 	}
 }
 

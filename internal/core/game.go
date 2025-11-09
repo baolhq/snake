@@ -15,7 +15,7 @@ import (
 )
 
 type Game struct {
-	Snake      *models.Snake
+	snake      *models.Snake
 	dir        models.Point
 	pendingDir []models.Point
 	food       models.Point
@@ -51,12 +51,13 @@ func NewGame() *Game {
 		{X: totalX/2 + 1, Y: totalY / 2},
 		{X: totalX / 2, Y: totalY / 2},
 		{X: totalX/2 - 1, Y: totalY / 2},
+		{X: totalX/2 - 2, Y: totalY / 2},
 	}
 	s := models.NewSnake(initial, consts.CellSize)
 	free = removePoints(free, s.Segments)
 
 	g := &Game{
-		Snake:      s,
+		snake:      s,
 		dir:        models.Point{X: 1, Y: 0},
 		freeCells:  free,
 		accelDelay: 200 * time.Millisecond,
@@ -139,7 +140,7 @@ func (g *Game) HandleInput() error {
 func (g *Game) computeInterval() time.Duration {
 	base, min := 200.0, 50.0
 	k := 0.0366
-	score := float64(len(g.Snake.Segments))
+	score := float64(len(g.snake.Segments))
 	interval := min + (base-min)*math.Exp(-k*score)
 	if interval < min {
 		interval = min
@@ -179,7 +180,7 @@ func (g *Game) Update() error {
 
 	g.applyPendingDirection()
 
-	selfCollision, ateFood := g.Snake.Move(g.dir, &g.freeCells, g.food)
+	selfCollision, ateFood := g.snake.Move(g.dir, &g.freeCells, g.food)
 	if selfCollision {
 		g.gameOver = true
 	}
@@ -187,8 +188,8 @@ func (g *Game) Update() error {
 	if ateFood {
 		g.spawnFood()
 
-		px := g.Snake.Segments[0].X * consts.CellSize
-		py := g.Snake.Segments[0].Y * consts.CellSize
+		px := g.snake.Segments[0].X * consts.CellSize
+		py := g.snake.Segments[0].Y * consts.CellSize
 		mng.Particle.Explode(assets.ParticleImage, px, py, 20)
 	}
 
