@@ -1,14 +1,27 @@
 [
   {
     "label": "Build Project",
-    "command": "go",
-    "args": ["build", "-ldflags", "'-H=windowsgui'", "-o", "dist/snake.exe"],
+    "command": "go build",
+    "args": ["-ldflags", "'-H=windowsgui'", "-o", "dist/bin/snake.exe"],
     "hide": "on_success"
   },
   {
     "label": "Build Project (Optimized)",
-    "command": "go",
-    "args": ["build", "-ldflags", "'-H=windowsgui -s -w'", "-trimpath", "-o", "dist/snake.exe"],
+    "command": "go build",
+    "args": [
+      "-ldflags",
+      "'-H=windowsgui -s -w'",
+      "-trimpath",
+      "-o",
+      "dist/bin/snake.exe"
+    ],
+    "hide": "on_success"
+  },
+  {
+    "label": "Build Project (WesAssembly)",
+    "env": { "GOOS": "js", "GOARCH": "wasm" },
+    "command": "go build",
+    "args": ["-ldflags", "'-s -w'", "-trimpath", "-o", "dist/wasm/snake.wasm"],
     "hide": "on_success"
   }
 ]

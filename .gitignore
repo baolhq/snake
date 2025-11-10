@@ -1,1 +1,5 @@
-dist/
+# Executables
+dist/bin
+
+# Heavy WASM build
+dist/**/*.wasm

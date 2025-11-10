@@ -4,7 +4,7 @@
     "label": "Go (Delve)",
     "request": "launch",
     "mode": "exec",
-    "program": "dist/snake.exe",
+    "program": "dist/bin/snake.exe",
     "cwd": "${ZED_WORKTREE_ROOT}",
     "build": {
       "command": "go",
