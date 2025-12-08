@@ -3,7 +3,7 @@ module baolhq/snake
 go 1.25.1
 
 require (
-	github.com/hajimehoshi/ebiten/v2 v2.9.4
+	github.com/hajimehoshi/ebiten/v2 v2.9.5
 	golang.org/x/image v0.32.0
 )
 
